@@ -2,6 +2,9 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_set>
+#include <iomanip>
+#include <chrono>
+
 #include "common.hpp"
 
 using namespace std;
@@ -13,7 +16,7 @@ void find_boss(Tree* tree, string& companyid, string& controller, float& percent
             controller = s.first;
         }
     }
-    cout<<companyid<<","<<percent<<",["<<controller<<"]"<<endl;
+    cout<<companyid<<","<<int(percent*10000)/10000.0<<",["<<controller<<"]"<<endl;
 }
 
 //@Deprecated
@@ -51,6 +54,7 @@ Tree* search_recursive(map<string, Tree*>& trees, const string& dst_id, map<stri
     }
 
     if(cache.find(dst_id) != cache.end()) {
+        // cout<<"Hit Cache: "<<cache.size()<<endl;
         return cache[dst_id];
     }
 
@@ -83,38 +87,64 @@ Tree* search_recursive(map<string, Tree*>& trees, const string& dst_id, map<stri
 
 int main(int argc, char ** argv) {
 
-    ifstream infile("geek_data_processed.csv");
+    string inpath = argv[1];
+    ifstream infile(inpath);
     string src_id;
     string dst_id;
     float percent;
 
+    /*****
+    * building tree nodes
+    *****/
     map<string, Tree*> trees;
     map<string, bool> companies;
 
+auto bstart = std::chrono::system_clock::now();
     while(infile>>src_id>>dst_id>>percent) {
         // cout<<src_id<<","<<dst_id<<","<<percent<<endl;
 
-        if(trees.find(dst_id) == trees.end() ) {
+        if(trees.find(dst_id) == trees.end() ) {    // 如果没有这个树节点，new一个
             trees[dst_id] = new Tree(src_id, dst_id, percent);
-        } else {
+        } else {                                    // 
             trees[dst_id]->srcs_[src_id] = percent;
         }
         companies[src_id] = true;
-        companies[dst_id] = true;   
+        companies[dst_id] = true;
     }
+
+auto bend = std::chrono::system_clock::now();
+std::chrono::duration<float> build_elapsed = bend - bstart;
+float build_time = static_cast<float>(1000*build_elapsed.count());
+cout<<"Building Tree Time: "<<build_time<<endl;
+
     // cout<<"Tree Building Finished. "<<trees.size()<<endl;
 
+    /*****
+    # recursively search and get a flatten tree
+    *****/
     map<string, Tree*> cache;
     for(auto c: companies) {
+
+auto sstart = std::chrono::system_clock::now();
+
         string companyid = c.first;
         unordered_set <string> path;
         Tree* finaltree = search_recursive(trees, companyid, cache, path);
+
+
         if(finaltree!=NULL) {
             string controller = "";
             float percent = 0.0f;
             find_boss(finaltree, companyid, controller, percent);
         }
+
+auto send = std::chrono::system_clock::now();
+std::chrono::duration<float> findmax_elapsed = send - sstart;
+float findmax_time = static_cast<float>(1000*findmax_elapsed.count());
+//cout<<"Search Time: "<<findmax_time<<endl;
+
     }
+
 
     return 0;
 }
