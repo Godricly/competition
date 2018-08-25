@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-#include <unordered_set>
+#include <unordered_map>
 #include <iomanip>
 #include <chrono>
 #include <vector>
@@ -59,7 +59,7 @@ Tree* search(map<string, Tree*>& trees, string dst_id) {
 }
 
 
-Tree* search_recursive(map<string, Tree*>& trees, const string& dst_id, map<string, Tree*>& cache, const unordered_set<string>& path) {
+Tree* search_recursive(map<string, Tree*>& trees, const string& dst_id, map<string, Tree*>& cache, unordered_map<string, float>& path) {
 
     if(trees.find(dst_id)==trees.end()) {
         // cout<<"no more boss, return NULL"<<endl;
@@ -76,10 +76,19 @@ Tree* search_recursive(map<string, Tree*>& trees, const string& dst_id, map<stri
     for(auto s: current->srcs_) { // 从current的直接投资人里面递归找展开树
         string cont_id = s.first;
         float cont_pr = s.second;
-        if(path.find(cont_id) != path.end())
+        if(path.find(cont_id) != path.end()) {
+            flatten->srcs_[cont_id] = cont_pr * path[dst_id] / path[cont_id];
             continue;
-        unordered_set <string> cont_path(path);
-        cont_path.insert(cont_id);
+        }
+        unordered_map <string, float> cont_path(path);
+        // cont_path.insert(cont_id);
+        //change weights
+        if (cont_path.empty()) {
+            cont_path[cont_id] = cont_pr;
+        } else {
+            cont_path[cont_id] = cont_path[dst_id] * cont_pr;
+        }
+
         Tree* ret_flatten = search_recursive(trees, cont_id, cache, cont_path);// 投资公司的展开树
         if(ret_flatten==NULL) { // 为NULL，是个大公司，不需要别人投资，例如 华为..
             flatten->srcs_[cont_id] = cont_pr;
@@ -141,9 +150,8 @@ float build_time = static_cast<float>(1000*build_elapsed.count());
 auto sstart = std::chrono::system_clock::now();
 
         string companyid = c.first;
-        unordered_set <string> path;
+        unordered_map <string, float> path;
         Tree* finaltree = search_recursive(trees, companyid, cache, path);
-
 
         if(finaltree!=NULL) {
             vector<string> controller;
