@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
-
+#include <unordered_set>
 #include "common.hpp"
 
 using namespace std;
@@ -43,9 +43,9 @@ Tree* search(map<string, Tree*>& trees, string dst_id) {
 }
 
 
-Tree* search_recursive(map<string, Tree*> trees, string dst_id, map<string, Tree*>& cache) {
+Tree* search_recursive(map<string, Tree*>& trees, const string& dst_id, map<string, Tree*>& cache, const unordered_set<string>& path) {
 
-    if(trees.find(dst_id)==trees.end() ) {
+    if(trees.find(dst_id)==trees.end()) {
         // cout<<"no more boss, return NULL"<<endl;
         return NULL;
     }
@@ -59,7 +59,11 @@ Tree* search_recursive(map<string, Tree*> trees, string dst_id, map<string, Tree
     for(auto s: current->srcs_) { // 从current的直接投资人里面递归找展开树
         string cont_id = s.first;
         float cont_pr = s.second;
-        Tree* ret_flatten = search_recursive(trees, cont_id, cache);// 投资公司的展开树
+        if(path.find(cont_id) != path.end())
+            continue;
+        unordered_set <string> cont_path(path);
+        cont_path.insert(cont_id);
+        Tree* ret_flatten = search_recursive(trees, cont_id, cache, cont_path);// 投资公司的展开树
         if(ret_flatten==NULL) { // 为NULL，是个大公司，不需要别人投资，例如 华为..
             flatten->srcs_[cont_id] = cont_pr;
             continue;
@@ -79,7 +83,7 @@ Tree* search_recursive(map<string, Tree*> trees, string dst_id, map<string, Tree
 
 int main(int argc, char ** argv) {
 
-    ifstream infile("sample_geek.csv");
+    ifstream infile("geek_data_processed.csv");
     string src_id;
     string dst_id;
     float percent;
@@ -103,7 +107,8 @@ int main(int argc, char ** argv) {
     map<string, Tree*> cache;
     for(auto c: companies) {
         string companyid = c.first;
-        Tree* finaltree = search_recursive(trees, companyid, cache);
+        unordered_set <string> path;
+        Tree* finaltree = search_recursive(trees, companyid, cache, path);
         if(finaltree!=NULL) {
             string controller = "";
             float percent = 0.0f;
