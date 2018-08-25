@@ -4,19 +4,32 @@
 #include <unordered_set>
 #include <iomanip>
 #include <chrono>
+#include <vector>
 
 #include "common.hpp"
 
 using namespace std;
 
-void find_boss(Tree* tree, string& companyid, string& controller, float& percent) {
+void find_boss(Tree* tree, string& companyid, vector<string>& controller, vector<float>& percent) {
+    float maxval = 0.0f;
     for(auto s: tree->srcs_) {
-        if(s.second>percent) {
-            percent = s.second;
-            controller = s.first;
+        if(s.second>maxval) {
+            maxval = s.second;
         }
     }
-    cout<<companyid<<","<<int(percent*10000)/10000.0<<",["<<controller<<"]"<<endl;
+    for(auto s: tree->srcs_) {
+        if(s.second == maxval) {
+            controller.push_back(s.first);
+            percent.push_back(s.second);
+        }
+    }
+    cout<<companyid<<","<<int(maxval*10000)/10000.0<<",";
+    cout<<"[";
+    for(size_t i=0; i<controller.size(); ++i) {
+        if( i!=controller.size()-1 ) cout<<controller[i]<<",";
+        else cout<<controller[i];
+    }
+    cout<<"]"<<endl;
 }
 
 //@Deprecated
@@ -115,7 +128,7 @@ auto bstart = std::chrono::system_clock::now();
 auto bend = std::chrono::system_clock::now();
 std::chrono::duration<float> build_elapsed = bend - bstart;
 float build_time = static_cast<float>(1000*build_elapsed.count());
-cout<<"Building Tree Time: "<<build_time<<endl;
+// cout<<"Building Tree Time: "<<build_time<<endl;
 
     // cout<<"Tree Building Finished. "<<trees.size()<<endl;
 
@@ -133,8 +146,8 @@ auto sstart = std::chrono::system_clock::now();
 
 
         if(finaltree!=NULL) {
-            string controller = "";
-            float percent = 0.0f;
+            vector<string> controller;
+            vector<float> percent;
             find_boss(finaltree, companyid, controller, percent);
         }
 
