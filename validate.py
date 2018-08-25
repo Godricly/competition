@@ -1,7 +1,7 @@
 label = open('sample_geek_result.csv')
 labellines = label.readlines()
 
-result = open('log')
+result = open('result.csv')
 resultlines = result.readlines()
 
 gt = {}
