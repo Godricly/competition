@@ -12,6 +12,9 @@ public:
     map<string, float> srcs_; 
 
     Tree() {}
+    Tree(string dst_id) {
+        dst_id_ = dst_id;
+    }
     Tree(string src_id, string dst_id, float percent) {
         dst_id_ = dst_id;
         srcs_[src_id] = percent;

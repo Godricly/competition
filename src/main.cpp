@@ -16,7 +16,8 @@ void find_boss(Tree* tree, string& companyid, string& controller, float& percent
     cout<<companyid<<","<<percent<<",["<<controller<<"]"<<endl;
 }
 
-Tree* search(map<string, Tree*> trees, string dst_id) {
+//@Deprecated
+Tree* search(map<string, Tree*>& trees, string dst_id) {
 
     if(trees.find(dst_id)==trees.end() ) {
         // cout<<"no more boss, return NULL"<<endl;
@@ -39,6 +40,41 @@ Tree* search(map<string, Tree*> trees, string dst_id) {
     // }
     // t->display();
     return t;
+}
+
+
+Tree* search_recursive(map<string, Tree*> trees, string dst_id, map<string, Tree*>& cache) {
+
+    if(trees.find(dst_id)==trees.end() ) {
+        // cout<<"no more boss, return NULL"<<endl;
+        return NULL;
+    }
+
+    if(cache.find(dst_id) != cache.end()) {
+        return cache[dst_id];
+    }
+
+    Tree* current = trees[dst_id];
+    Tree* flatten = new Tree(dst_id);
+    for(auto s: current->srcs_) { // 从current的直接投资人里面递归找展开树
+        string cont_id = s.first;
+        float cont_pr = s.second;
+        Tree* ret_flatten = search_recursive(trees, cont_id, cache);// 投资公司的展开树
+        if(ret_flatten==NULL) { // 为NULL，是个大公司，不需要别人投资，例如 华为..
+            flatten->srcs_[cont_id] = cont_pr;
+            continue;
+        } else {                // 否则，把展开树转移给小公司, 控股权连乘
+            for(auto ret: ret_flatten->srcs_) {
+                if(flatten->srcs_.find(ret.first) == flatten->srcs_.end() ) {
+                    flatten->srcs_[ret.first] = cont_pr * ret.second;
+                } else {
+                    flatten->srcs_[ret.first] += cont_pr * ret.second;
+                }
+            }
+        }
+    }
+    cache[dst_id] = flatten;
+    return flatten;
 }
 
 int main(int argc, char ** argv) {
@@ -64,9 +100,10 @@ int main(int argc, char ** argv) {
     }
     // cout<<"Tree Building Finished. "<<trees.size()<<endl;
 
+    map<string, Tree*> cache;
     for(auto c: companies) {
         string companyid = c.first;
-        Tree* finaltree = search(trees, companyid);
+        Tree* finaltree = search_recursive(trees, companyid, cache);
         if(finaltree!=NULL) {
             string controller = "";
             float percent = 0.0f;
